@@ -1,0 +1,274 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3 Choropleth MapFcc</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v3.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
+</head>
+
+<style>
+
+.tooltip {	
+        
+          position: absolute;
+          text-align: center;			
+          				
+          font: 12px sans-serif;		
+          
+         		
+          	
+      }
+#title{
+  font: 2rem sans-serif;
+  text-align: center;
+}
+
+#description{
+  font: 1.3rem sans-serif;
+  text-align: center;
+  padding-bottom: 2rem;
+}
+
+     
+
+
+  
+
+    
+    
+    
+    
+    </style>
+
+<body>
+<div id="title">
+  Us counties Educational Attainment
+</div>
+<div id="description">
+  Percentage of adults age 25 and older with a bachelor's degree or higher (2010-2014)
+ 
+</div>
+  <svg class="map" width="960" height="600"></svg>
+ 
+  
+
+    
+
+
+
+<script>
+
+var path = d3.geoPath();
+var svg = d3.select("svg"),
+    
+width = +svg.attr("width"),
+height = +svg.attr("height");
+
+var g = svg.append("g")
+    .attr("class", "key")
+    .attr("transform", "translate(0,20)");
+
+
+const map_url ='https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json'
+    
+
+
+
+
+
+
+var data_url = "https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json"
+
+
+var pairNameWithId = {};
+
+
+    
+    
+
+
+    
+var color = d3.scaleQuantize()
+  .domain([3, 70])
+  .range(d3.schemeReds[7]);
+
+    
+var legend = 
+svg.append("g")
+  .attr('id', 'legend')
+  
+  
+  
+  .selectAll('g.legendEntry')
+  .data(color.range())
+  .enter()
+  .append('g');
+  
+  legend
+  .append("text")
+            .attr("x", 689)
+            .attr("y", 10)
+            .text('Education level:')
+            .style("font-size", "15px")
+            .style("letter-spacing", "0.625px");
+            
+  legend
+  .append('rect')
+  .attr("x", width - 260)
+  .attr("y", function(d, i) {
+   return (i * 20)+15;
+})
+  .attr('class', 'legendEntry')
+  .attr("width", 10)
+  .attr("height", 10)
+  .style("stroke", "black")
+  .style("stroke-width", 1)
+  .style("fill", function(d){return d;}) 
+   //the data objects are the fill colors
+
+  
+legend
+  .append('text')
+  .attr("x", width - 245) //leave 5 pixel space after the <rect>
+  .attr("y", function(d, i) {
+   return (i * 20)+15;
+})
+  .attr("dy", "0.8em") //place text one line *below* the x,y point
+  .text(function(d,i) {
+    var extent = color.invertExtent(d);
+    //extent will be a two-element array, format it however you want:
+    var format = d3.format = d => `${~~d}%`
+    return format(+extent[0]) + " - " + format(+extent[1]);
+})
+    svg;
+    
+ callout = (g, value) => {
+  if (!value) return g.style("visibility", "hidden");
+
+     g
+      .style("visibility", null)
+      .style("pointer-events", "none")
+      .style("font", "10px sans-serif")
+      .attr("id","tooltip") ;
+  const path = g.selectAll("path")
+    .data([null])
+    .join("path")
+      .attr("fill", "white")
+      .attr("stroke", "black")
+      
+
+  const text = g.selectAll("text")
+    .data([null])
+    .join("text")
+    .call(text => text
+      .selectAll("tspan")
+      .data((value + "").split(/\n/))
+      .join("tspan")
+        .attr("x", 0)
+        .attr("y", (d, i) => `${i * 1.1}em`)
+        .style("font-weight", (_, i) => i ? null : "bold")
+        .text(d => d));
+
+  const {x, y, width: w, height: h} = text.node().getBBox();
+
+  text.attr("transform", `translate(${-w / 2},${15 - y})`);
+  path.attr("d", `M${-w / 2 - 10},5H-5l5,-5l5,5H${w / 2 + 10}v${h + 20}h-${w + 20}z`)
+  ;
+}    
+
+
+
+
+                 
+
+
+let dictionary={}
+
+
+var promises = [
+  d3.json(map_url),
+ d3.json(data_url), ]
+   
+    
+  
+Promise.all(promises).then(dico).then(ready)
+
+function dico([us,data]){
+  // Build the dictionary from education data with fips as index
+data.forEach((obj)=>{
+    
+    Object.assign(dictionary,(Object.fromEntries(
+  Object.entries(obj)
+  .map(([ key, val ]) => [ obj.fips, obj])
+  
+)))})
+return [us,dictionary]}
+
+
+ 
+function ready([us]) {
+ //  Build the map from Us map dataset
+   svg.append("g")
+ 
+    .attr("class", "us") 
+    .selectAll("path")
+    .data(topojson.feature(us, us.objects.counties).features)
+    .enter()
+    .append("path")
+    .attr("d", path)
+    .attr("class", "county")
+    .attr("fill", (d,i) => {return color(d.level= dictionary[d.id].bachelorsOrHigher)})
+    .attr("data-education", (d,i)=>d.level) 
+    .attr("data-fips", (d,i)=>d.id)
+     
+    format = d => `${d}%`
+
+// add info to the tooltip (defined in the function named'callout')   
+const tooltip = svg.append("g")
+
+     svg
+        .selectAll(".county")
+        .on("touchmove mousemove", function(event, d) {
+ tooltip.call(
+        callout,
+        `${format(dictionary[d.id].bachelorsOrHigher)}
+         ${dictionary[d.id].area_name}, ${dictionary[d.id].state}`
+      );
+ tooltip.attr("transform", `translate(${d3.pointer(event, this)})`)
+        .attr("data-education", dictionary[d.id].bachelorsOrHigher)
+      
+      
+      d3.select(this)
+        .attr("stroke", "red")
+        .raise();
+    })
+    .on("touchend mouseleave", function() {
+      tooltip.call(callout, null);
+      d3.select(this)
+        .attr("stroke", null)
+        .lower();
+    });
+
+  return svg.node();
+
+
+
+
+};
+
+    
+     
+</script>   
+<script src="https://cdn.freecodecamp.org/testable-projects-fcc/v1/bundle.js"></script>
+
+</body>
+</html>
